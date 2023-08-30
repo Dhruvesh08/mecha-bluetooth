@@ -1,0 +1,14 @@
+[package]
+name = "mecha-bluetooth"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bluer = { version = "0.16.0", features = ["full"] }
+tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "io-std", "io-util"] }
+tokio-util  ={ version = "0", features = ["codec"] }
