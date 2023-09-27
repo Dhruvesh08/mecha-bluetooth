@@ -1,12 +1,11 @@
-#[tokio::main]
-async fn main() {
-    // Create a BlueZ session and get the adapter
-    let session = bluer::Session::new().await.expect("Failed to create session");
-    let adapter_name = "hci0"; // Change this to the appropriate adapter name
-    let adapter = Adapter::new(session, adapter_name).await.expect("Failed to get adapter");
+mod bluetooth;
+pub use bluetooth::BluetoothController;
 
-    // Enable Bluetooth
-    adapter.set_powered(true).await.expect("Failed to enable Bluetooth");
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> bluer::Result<()> {
+    //print all bluetooth devices
+    let controller = BluetoothController::new().await?;
+    controller.scan_bluetooth();
 
-    println!("Bluetooth has been enabled.");
+    Ok(())
 }
