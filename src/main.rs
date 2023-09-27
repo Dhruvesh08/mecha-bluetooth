@@ -5,7 +5,6 @@ pub use bluetooth::BluetoothController;
 async fn main() -> bluer::Result<()> {
     //print all bluetooth devices
     let controller = BluetoothController::new().await?;
-    controller.scan_bluetooth();
-
+    let _ = controller.scan_bluetooth().await?;
     Ok(())
 }
