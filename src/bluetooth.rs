@@ -40,7 +40,11 @@ impl BluetoothController {
         Ok(())
     }
 
-    pub async fn scan_bluetooth(&self) -> Result<BluetoothScanResult> {
+    pub async fn scan_bluetooth(
+        &self,
+        scan_duration_secs: Option<u64>,
+    ) -> Result<BluetoothScanResult> {
+        let scan_duration_secs = scan_duration_secs.unwrap_or(5);
         let with_changes = env::args().any(|arg| arg == "--changes");
         let all_properties = env::args().any(|arg| arg == "--all-properties");
         let le_only = env::args().any(|arg| arg == "--le");
