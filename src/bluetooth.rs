@@ -9,6 +9,19 @@ pub struct BluetoothController {
     session: Session,
 }
 
+pub struct BluetoothScanResult {
+    // Define fields to hold the scan results or any other relevant information.
+    pub discovered_devices: Vec<DeviceInfo>,
+    // Add more fields as needed.
+}
+
+pub struct DeviceInfo {
+    // Define fields to hold information about a Bluetooth device.
+    pub address: Address,
+    pub name: Option<String>,
+    // Add more fields as needed.
+}
+
 impl BluetoothController {
     pub async fn new() -> Result<Self> {
         let session = Session::new().await?;
@@ -27,7 +40,7 @@ impl BluetoothController {
         Ok(())
     }
 
-    pub async fn scan_bluetooth(&self) -> Result<()> {
+    pub async fn scan_bluetooth(&self) -> Result<BluetoothScanResult> {
         let with_changes = env::args().any(|arg| arg == "--changes");
         let all_properties = env::args().any(|arg| arg == "--all-properties");
         let le_only = env::args().any(|arg| arg == "--le");
@@ -37,6 +50,7 @@ impl BluetoothController {
             .collect();
 
         let adapter = self.session.default_adapter().await?;
+        let mut discovered_devices = Vec::new();
         let filter = DiscoveryFilter {
             transport: if le_only {
                 DiscoveryTransport::Le
@@ -83,6 +97,13 @@ impl BluetoothController {
                                 let change_events = device.events().await?.map(move |evt| (addr, evt));
                                 all_change_events.push(change_events);
                             }
+
+                            let device_info = DeviceInfo {
+                                address: addr.clone(),
+                                name: Self::query_device_name(&adapter, addr).await.ok(),
+                                // Add more fields as needed.
+                            };
+                            discovered_devices.push(device_info);
                         }
                         AdapterEvent::DeviceRemoved(addr) => {
                             println!("Device removed: {addr}");
@@ -99,7 +120,14 @@ impl BluetoothController {
             }
         }
 
-        Ok(())
+        // Reset the discovery filter to stop scanning.
+        let no_filter = DiscoveryFilter {
+            transport: DiscoveryTransport::default(),
+            ..Default::default()
+        };
+        adapter.set_discovery_filter(no_filter).await?;
+
+        Ok(BluetoothScanResult { discovered_devices })
     }
 
     async fn query_device(adapter: &Adapter, addr: Address) -> bluer::Result<()> {
@@ -133,5 +161,10 @@ impl BluetoothController {
             println!("    {:?}", &prop);
         }
         Ok(())
+    }
+
+    async fn query_device_name(adapter: &Adapter, addr: Address) -> bluer::Result<String> {
+        let device = adapter.device(addr)?;
+        device.name().await.map(|name| name.unwrap_or_default())
     }
 }
