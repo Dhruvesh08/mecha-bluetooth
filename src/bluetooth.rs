@@ -77,7 +77,16 @@ impl BluetoothController {
 
         let mut all_change_events = SelectAll::new();
 
+        // Track the start time of the scan.
+        let start_time = std::time::Instant::now();
+        let scan_duration = std::time::Duration::from_secs(scan_duration_secs);
+
         loop {
+            // Check if the elapsed time has exceeded the specified scan duration.
+            if std::time::Instant::now() - start_time >= scan_duration {
+                break;
+            }
+
             tokio::select! {
                 Some(device_event) = device_events.next() => {
                     match device_event {
