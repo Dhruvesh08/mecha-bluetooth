@@ -95,15 +95,15 @@ impl BluetoothController {
                                 continue;
                             }
 
-                            println!("Device added: {addr}");
-                            let res = if all_properties {
-                             Self::query_all_device_properties(&adapter, addr).await
-                            } else {
-                                Self:: query_device(&adapter, addr).await
-                            };
-                            if let Err(err) = res {
-                                println!("    Error: {}", &err);
-                            }
+                            // println!("Device added: {addr}");
+                            // let res = if all_properties {
+                            //  Self::query_all_device_properties(&adapter, addr).await
+                            // } else {
+                            //     Self:: query_device(&adapter, addr).await
+                            // };
+                            // if let Err(err) = res {
+                            //     println!("    Error: {}", &err);
+                            // }
 
                             if with_changes {
                                 let device = adapter.device(addr)?;
@@ -145,25 +145,25 @@ impl BluetoothController {
 
     async fn query_device(adapter: &Adapter, addr: Address) -> bluer::Result<()> {
         let device = adapter.device(addr)?;
-        println!("    Address type:       {}", device.address_type().await?);
-        println!("    Name:               {:?}", device.name().await?);
-        println!("    Icon:               {:?}", device.icon().await?);
-        println!("    Class:              {:?}", device.class().await?);
-        println!(
-            "    UUIDs:              {:?}",
-            device.uuids().await?.unwrap_or_default()
-        );
-        println!("    Paired:             {:?}", device.is_paired().await?);
-        println!("    Connected:          {:?}", device.is_connected().await?);
-        println!("    Trusted:            {:?}", device.is_trusted().await?);
-        println!("    Modalias:           {:?}", device.modalias().await?);
-        println!("    RSSI:               {:?}", device.rssi().await?);
-        println!("    TX power:           {:?}", device.tx_power().await?);
-        println!(
-            "    Manufacturer data:  {:?}",
-            device.manufacturer_data().await?
-        );
-        println!("    Service data:       {:?}", device.service_data().await?);
+        // println!("    Address type:       {}", device.address_type().await?);
+        // println!("    Name:               {:?}", device.name().await?);
+        // println!("    Icon:               {:?}", device.icon().await?);
+        // println!("    Class:              {:?}", device.class().await?);
+        // println!(
+        //     "    UUIDs:              {:?}",
+        //     device.uuids().await?.unwrap_or_default()
+        // );
+        // println!("    Paired:             {:?}", device.is_paired().await?);
+        // println!("    Connected:          {:?}", device.is_connected().await?);
+        // println!("    Trusted:            {:?}", device.is_trusted().await?);
+        // println!("    Modalias:           {:?}", device.modalias().await?);
+        // println!("    RSSI:               {:?}", device.rssi().await?);
+        // println!("    TX power:           {:?}", device.tx_power().await?);
+        // println!(
+        //     "    Manufacturer data:  {:?}",
+        //     device.manufacturer_data().await?
+        // );
+        // println!("    Service data:       {:?}", device.service_data().await?);
         Ok(())
     }
 
