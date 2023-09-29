@@ -5,10 +5,11 @@ pub use bluetooth::BluetoothController;
 async fn main() -> bluer::Result<()> {
     //print all bluetooth devices
     let controller = BluetoothController::new().await?;
+    println!("Scanning for bluetooth devices...");
     let bt_list = controller.scan_bluetooth(None).await?;
+    print!("Found {} devices: ", bt_list.discovered_devices.len());
     for device in bt_list.discovered_devices {
-        print!("List of bluetooth devices:");
-        println!("{:?}: {:?}", device.name, device.address);
-    }
+        println!("{}: {:?}", device.name.unwrap(), device.address);
+    }  
     Ok(())
 }
