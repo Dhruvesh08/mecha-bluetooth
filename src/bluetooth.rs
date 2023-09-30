@@ -3,8 +3,8 @@ use bluer::{
     DiscoveryTransport, Result, Session, Uuid,
 };
 use futures::{pin_mut, stream::SelectAll, StreamExt};
-use tokio::time::timeout;
 use std::{collections::HashSet, env, time::Duration};
+use tokio::time::timeout;
 
 pub struct BluetoothController {
     session: Session,
@@ -144,6 +144,10 @@ impl BluetoothController {
                 ..Default::default()
             };
             adapter.set_discovery_filter(no_filter).await?;
+            println!(
+                "Discover Bluetooth device Number {}",
+                discovered_devices.len()
+            );
 
             Ok(BluetoothScanResult { discovered_devices })
         });
@@ -162,26 +166,6 @@ impl BluetoothController {
 
     async fn query_device(adapter: &Adapter, addr: Address) -> bluer::Result<DeviceInfo> {
         let device = adapter.device(addr)?;
-        // println!("    Address type:       {}", device.address_type().await?);
-        // println!("    Name:               {:?}", device.name().await?);
-        // println!("    Icon:               {:?}", device.icon().await?);
-        // println!("    Class:              {:?}", device.class().await?);
-        // println!(
-        //     "    UUIDs:              {:?}",
-        //     device.uuids().await?.unwrap_or_default()
-        // );
-        // println!("    Paired:             {:?}", device.is_paired().await?);
-        // println!("    Connected:          {:?}", device.is_connected().await?);
-        // println!("    Trusted:            {:?}", device.is_trusted().await?);
-        // println!("    Modalias:           {:?}", device.modalias().await?);
-        // println!("    RSSI:               {:?}", device.rssi().await?);
-        // println!("    TX power:           {:?}", device.tx_power().await?);
-        // println!(
-        //     "    Manufacturer data:  {:?}",
-        //     device.manufacturer_data().await?
-        // );
-        // println!("    Service data:       {:?}", device.service_data().await?);
-
         Ok(DeviceInfo {
             address: addr.clone(),
             name: Self::query_device_name(&adapter, addr).await.ok(),
