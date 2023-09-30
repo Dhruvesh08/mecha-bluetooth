@@ -1,9 +1,9 @@
 use bluer::{
-    Adapter, AdapterEvent, Address, AddressType, DeviceEvent, DiscoveryFilter, DiscoveryTransport,
-    Result, Session, Uuid, Device,
+    Adapter, AdapterEvent, Address, AddressType, Device, DeviceEvent, DiscoveryFilter,
+    DiscoveryTransport, Result, Session, Uuid,
 };
 use futures::{pin_mut, stream::SelectAll, StreamExt};
-use std::{collections::HashSet, env};
+use std::{collections::HashSet, env, time::Duration};
 
 pub struct BluetoothController {
     session: Session,
@@ -60,6 +60,15 @@ impl BluetoothController {
             .collect();
 
         let adapter = self.session.default_adapter().await?;
+        if adapter.is_discovering().await? {
+            println!("Waiting for the existing discovery process to complete...");
+            // Wait for the existing discovery process to complete
+            while adapter.is_discovering().await? {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+            }
+            println!("Existing discovery process has completed.");
+        }
+
         let mut discovered_devices = Vec::new();
         let filter = DiscoveryFilter {
             transport: if le_only {
@@ -88,11 +97,6 @@ impl BluetoothController {
         let scan_duration = std::time::Duration::from_secs(scan_duration_secs);
 
         loop {
-            // Check if the elapsed time has exceeded the specified scan duration.
-            if std::time::Instant::now() - start_time >= scan_duration {
-                break;
-            }
-
             tokio::select! {
                 Some(device_event) = device_events.next() => {
                     match device_event {
@@ -100,16 +104,6 @@ impl BluetoothController {
                             if !filter_addr.is_empty() && !filter_addr.contains(&addr) {
                                 continue;
                             }
-
-                            // println!("Device added: {addr}");
-                            // let res = if all_properties {
-                            //  Self::query_all_device_properties(&adapter, addr).await
-                            // } else {
-                            //     Self:: query_device(&adapter, addr).await
-                            // };
-                            // if let Err(err) = res {
-                            //     println!("    Error: {}", &err);
-                            // }
 
                             if with_changes {
                                 let device = adapter.device(addr)?;
@@ -132,7 +126,12 @@ impl BluetoothController {
                     println!("Device changed: {addr}");
                     println!("    {property:?}");
                 }
-                else => break
+                else => {
+                    // Check if the elapsed time has exceeded the specified scan duration.
+                    if std::time::Instant::now() - start_time >= scan_duration {
+                        break;
+                    }
+                }
             }
         }
 
