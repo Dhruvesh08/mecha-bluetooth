@@ -1,6 +1,6 @@
 use bluer::{
     Adapter, AdapterEvent, Address, DeviceEvent, DiscoveryFilter, DiscoveryTransport, Result,
-    Session,
+    Session, Uuid,
 };
 use futures::{pin_mut, stream::SelectAll, StreamExt};
 use std::{collections::HashSet, env};
@@ -20,6 +20,10 @@ pub struct DeviceInfo {
     // Define fields to hold information about a Bluetooth device.
     pub address: Address,
     pub name: Option<String>,
+    pub is_connected: bool,
+    pub device_id: HashSet<Uuid>,
+    pub is_pairing: bool,
+    pub is_trusted: bool,
     // Add more fields as needed.
 }
 
@@ -112,12 +116,7 @@ impl BluetoothController {
                                 all_change_events.push(change_events);
                             }
 
-                            let device_info = DeviceInfo {
-                                address: addr.clone(),
-                                name: Self::query_device_name(&adapter, addr).await.ok(),
-                                // Add more fields as needed.
-                            };
-
+                            let device_info = Self::query_device(&adapter, addr).await?;
                             println!("    {:?}", &device_info);
                             discovered_devices.push(device_info);
                         }
@@ -146,7 +145,7 @@ impl BluetoothController {
         Ok(BluetoothScanResult { discovered_devices })
     }
 
-    async fn query_device(adapter: &Adapter, addr: Address) -> bluer::Result<()> {
+    async fn query_device(adapter: &Adapter, addr: Address) -> bluer::Result<DeviceInfo> {
         let device = adapter.device(addr)?;
         // println!("    Address type:       {}", device.address_type().await?);
         // println!("    Name:               {:?}", device.name().await?);
@@ -167,7 +166,15 @@ impl BluetoothController {
         //     device.manufacturer_data().await?
         // );
         // println!("    Service data:       {:?}", device.service_data().await?);
-        Ok(())
+
+        Ok(DeviceInfo {
+            address: addr.clone(),
+            name: Self::query_device_name(&adapter, addr).await.ok(),
+            is_connected: device.is_connected().await?,
+            device_id: device.uuids().await?.unwrap_or_default(),
+            is_pairing: device.is_paired().await?,
+            is_trusted: device.is_trusted().await?,
+        })
     }
 
     async fn query_all_device_properties(adapter: &Adapter, addr: Address) -> bluer::Result<()> {
