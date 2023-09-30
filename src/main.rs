@@ -9,7 +9,13 @@ async fn main() -> bluer::Result<()> {
     let bt_list = controller.scan_bluetooth(None).await?;
     print!("Found {} devices: ", bt_list.discovered_devices.len());
     for device in bt_list.discovered_devices {
-        println!("{}: {:?}", device.name.unwrap(), device.address);
-    }  
+        if device.name.unwrap() == "Jarvis" {
+            println!("Found Jarvis!");
+            controller.connect_device(device.address).await?;
+            println!("Connected to Jarvis!");
+            break;
+        }
+    }
+
     Ok(())
 }
