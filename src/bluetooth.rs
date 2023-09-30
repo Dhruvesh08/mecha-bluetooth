@@ -1,6 +1,6 @@
 use bluer::{
-    Adapter, AdapterEvent, Address, DeviceEvent, DiscoveryFilter, DiscoveryTransport, Result,
-    Session, Uuid,
+    Adapter, AdapterEvent, Address, AddressType, DeviceEvent, DiscoveryFilter, DiscoveryTransport,
+    Result, Session, Uuid,
 };
 use futures::{pin_mut, stream::SelectAll, StreamExt};
 use std::{collections::HashSet, env};
@@ -24,6 +24,7 @@ pub struct DeviceInfo {
     pub device_id: HashSet<Uuid>,
     pub is_pairing: bool,
     pub is_trusted: bool,
+    pub address_type: AddressType,
     // Add more fields as needed.
 }
 
@@ -174,6 +175,7 @@ impl BluetoothController {
             device_id: device.uuids().await?.unwrap_or_default(),
             is_pairing: device.is_paired().await?,
             is_trusted: device.is_trusted().await?,
+            address_type: device.address_type().await?,
         })
     }
 
@@ -189,5 +191,11 @@ impl BluetoothController {
     async fn query_device_name(adapter: &Adapter, addr: Address) -> bluer::Result<String> {
         let device = adapter.device(addr)?;
         device.name().await.map(|name| name.unwrap_or_default())
+    }
+
+    pub async fn remove_device(&self, address: Address) -> Result<()> {
+        let adapter = self.session.default_adapter().await?;
+        adapter.remove_device(address).await?;
+        Ok(())
     }
 }
