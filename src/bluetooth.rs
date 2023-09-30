@@ -3,6 +3,7 @@ use bluer::{
     DiscoveryTransport, Result, Session, Uuid,
 };
 use futures::{pin_mut, stream::SelectAll, StreamExt};
+use tokio::time::timeout;
 use std::{collections::HashSet, env, time::Duration};
 
 pub struct BluetoothController {
@@ -96,53 +97,67 @@ impl BluetoothController {
         let start_time = std::time::Instant::now();
         let scan_duration = std::time::Duration::from_secs(scan_duration_secs);
 
-        loop {
-            tokio::select! {
-                Some(device_event) = device_events.next() => {
-                    match device_event {
-                        AdapterEvent::DeviceAdded(addr) => {
-                            if !filter_addr.is_empty() && !filter_addr.contains(&addr) {
-                                continue;
-                            }
+        // Use tokio::time::timeout to implement the timeout mechanism.
+        let scan_result = timeout(scan_duration, async {
+            loop {
+                tokio::select! {
+                    Some(device_event) = device_events.next() => {
+                        match device_event {
+                            AdapterEvent::DeviceAdded(addr) => {
+                                if !filter_addr.is_empty() && !filter_addr.contains(&addr) {
+                                    continue;
+                                }
 
-                            if with_changes {
-                                let device = adapter.device(addr)?;
-                                let change_events = device.events().await?.map(move |evt| (addr, evt));
-                                all_change_events.push(change_events);
-                            }
+                                if with_changes {
+                                    let device = adapter.device(addr)?;
+                                    let change_events = device.events().await?.map(move |evt| (addr, evt));
+                                    all_change_events.push(change_events);
+                                }
 
-                            let device_info = Self::query_device(&adapter, addr).await?;
-                            println!("    {:?}", &device_info);
-                            discovered_devices.push(device_info);
+                                let device_info = Self::query_device(&adapter, addr).await?;
+                                println!("    {:?}", &device_info);
+                                discovered_devices.push(device_info);
+                            }
+                            AdapterEvent::DeviceRemoved(addr) => {
+                                println!("Device removed: {addr}");
+                            }
+                            _ => (),
                         }
-                        AdapterEvent::DeviceRemoved(addr) => {
-                            println!("Device removed: {addr}");
-                        }
-                        _ => (),
+                        println!();
                     }
-                    println!();
-                }
-                Some((addr, DeviceEvent::PropertyChanged(property))) = all_change_events.next() => {
-                    println!("Device changed: {addr}");
-                    println!("    {property:?}");
-                }
-                else => {
-                    // Check if the elapsed time has exceeded the specified scan duration.
-                    if std::time::Instant::now() - start_time >= scan_duration {
-                        break;
+                    Some((addr, DeviceEvent::PropertyChanged(property))) = all_change_events.next() => {
+                        println!("Device changed: {addr}");
+                        println!("    {property:?}");
+                    }
+                    else => {
+                        // Check if the elapsed time has exceeded the specified scan duration.
+                        if std::time::Instant::now() - start_time >= scan_duration {
+                            break;
+                        }
                     }
                 }
             }
+
+            // Reset the discovery filter to stop scanning.
+            let no_filter = DiscoveryFilter {
+                transport: DiscoveryTransport::default(),
+                ..Default::default()
+            };
+            adapter.set_discovery_filter(no_filter).await?;
+
+            Ok(BluetoothScanResult { discovered_devices })
+        });
+
+        // Handle the result of the timeout.
+        match scan_result.await {
+            Ok(result) => result,
+            Err(_) => {
+                // Handle the timeout case here, e.g., return an empty list or an error.
+                Ok(BluetoothScanResult {
+                    discovered_devices: Vec::new(),
+                })
+            }
         }
-
-        // Reset the discovery filter to stop scanning.
-        let no_filter = DiscoveryFilter {
-            transport: DiscoveryTransport::default(),
-            ..Default::default()
-        };
-        adapter.set_discovery_filter(no_filter).await?;
-
-        Ok(BluetoothScanResult { discovered_devices })
     }
 
     async fn query_device(adapter: &Adapter, addr: Address) -> bluer::Result<DeviceInfo> {
