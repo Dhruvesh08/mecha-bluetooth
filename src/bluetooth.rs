@@ -15,6 +15,7 @@ pub struct BluetoothScanResult {
     // Add more fields as needed.
 }
 
+#[derive(Debug)]
 pub struct DeviceInfo {
     // Define fields to hold information about a Bluetooth device.
     pub address: Address,
@@ -116,6 +117,8 @@ impl BluetoothController {
                                 name: Self::query_device_name(&adapter, addr).await.ok(),
                                 // Add more fields as needed.
                             };
+
+                            println!("    {:?}", &device_info);
                             discovered_devices.push(device_info);
                         }
                         AdapterEvent::DeviceRemoved(addr) => {
